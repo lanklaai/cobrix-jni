@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
-use jni::{InitArgsBuilder, JNIEnv, JNIVersion, JavaVM};
+use jni::objects::{GlobalRef, JClass, JObject, JObjectArray, JString, JValue};
+use jni::{InitArgsBuilder, JNIVersion, JavaVM};
 use serde::Deserialize;
 
 #[derive(Debug, thiserror::Error)]
@@ -70,13 +70,14 @@ impl CobrixJvm {
         let path = env
             .new_string(copybook_path)
             .map_err(CobrixJniError::from)?;
+        let path_obj = JObject::from(path);
 
         let out = env
             .call_method(
                 self.bridge.as_obj(),
                 "schemaJson",
                 "(Ljava/lang/String;)Ljava/lang/String;",
-                &[JValue::Object(&JObject::from(path))],
+                &[JValue::Object(&path_obj)],
             )
             .and_then(|v| v.l())
             .map_err(CobrixJniError::from)?;
@@ -104,6 +105,8 @@ impl CobrixJvm {
             .new_string(copybook_path)
             .map_err(CobrixJniError::from)?;
         let data = env.new_string(data_path).map_err(CobrixJniError::from)?;
+        let copybook_obj = JObject::from(copybook);
+        let data_obj = JObject::from(data);
 
         let handle = env
             .call_method(
@@ -111,8 +114,8 @@ impl CobrixJvm {
                 "openReader",
                 "(Ljava/lang/String;Ljava/lang/String;I)J",
                 &[
-                    JValue::Object(&JObject::from(copybook)),
-                    JValue::Object(&JObject::from(data)),
+                    JValue::Object(&copybook_obj),
+                    JValue::Object(&data_obj),
                     JValue::Int(batch_size),
                 ],
             )
@@ -149,7 +152,7 @@ impl CobrixBatchReader {
             return Ok(None);
         }
 
-        let arr = arr_obj.into_raw() as jni::sys::jobjectArray;
+        let arr = JObjectArray::from(arr_obj);
         let len = env.get_array_length(&arr).map_err(CobrixJniError::from)?;
         let mut rows = Vec::with_capacity(len as usize);
         for i in 0..len {
