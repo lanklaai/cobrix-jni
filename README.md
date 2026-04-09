@@ -19,6 +19,7 @@ This repository provides a thin JNI bridge so Rust can use Cobrix copybook parsi
    ```bash
    sbt assembly
    ```
+   > Requires [sbt](https://www.scala-sbt.org/download/) 1.10+ on your `PATH`.
 2. Build the Rust crate:
    ```bash
    cargo build
